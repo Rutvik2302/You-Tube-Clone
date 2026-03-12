@@ -1,9 +1,9 @@
 const dns = require("dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
-require("dotenv").config();
+require("dotenv").config({path:'./.env'});
 const express = require("express");
-const app = express();
+const app = require("./app");
 const connectDB = require("./db/index");
 
 connectDB()

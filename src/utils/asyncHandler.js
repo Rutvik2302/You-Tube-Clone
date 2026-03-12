@@ -1,5 +1,5 @@
 const asyncHandler = (requvestHandler) => {
-  (req, res, next) => {
+  return (req, res, next) => {
     Promise.resolve(requvestHandler(req, res, next)).catch((err) => next(err));
   };
 };
@@ -15,4 +15,4 @@ const asyncHandler = (requvestHandler) => {
 //   }
 // };
 
-// module.exports = asyncHandler;
+module.exports = asyncHandler;
