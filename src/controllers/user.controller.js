@@ -3,16 +3,17 @@ const ApiError = require("../utils/apiError.js");
 const User = require("../models/user.model.js");
 const uploadOnCloudinary = require("../utils/cludinary.js");
 const ApiRespones = require("../utils/ApiResponse .js");
+const jwt = require("jsonwebtoken");
 
 const GenrateRefranshTokenAndAccessToken = async (userId) => {
   try {
     const user = await User.findById(userId);
     const accessToken = await user.generateAccessToken();
-    const refreshToken =await user.generateRefranshToken();
+    const refreshToken = await user.generateRefranshToken();
     user.refreshToken = refreshToken;
 
     await user.save({ validateBeforeSave: false });
-    
+
     return { refreshToken, accessToken };
   } catch (error) {
     console.error("Token Generation Error: ", error);
@@ -99,9 +100,8 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Password is incorrect");
   }
 
-  const { accessToken, refreshToken } = await GenrateRefranshTokenAndAccessToken(
-    user._id,
-  );
+  const { accessToken, refreshToken } =
+    await GenrateRefranshTokenAndAccessToken(user._id);
 
   const loggedinUsser = await User.findById(user._id).select(
     "-password -refreshToken",
@@ -143,8 +143,56 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiRespones(200, {}, "Logout sucessfully"));
 });
 
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshtoken = req.cookies.refreshToken || req.body.refreshToken;
+
+  if (!incomingRefreshtoken) {
+    throw new ApiError(401, "Unauthorize request");
+  }
+
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshtoken,
+      process.env.REFRESE_TOKEN_SECRET,
+    );
+
+    const user = await User.findById(decodedToken?._id);
+
+    if (!user) {
+      throw new ApiError(401, "Unauthorize request");
+    }
+
+    if (incomingRefreshtoken !== user?.refreshToken) {
+      throw new ApiError(401, "Refresh Token is expire ");
+    }
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    const { accessToken, refreshToken } =
+      await GenrateRefranshTokenAndAccessToken(user._id);
+
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        new ApiRespones(
+          200,
+          { accessToken, refreshToken },
+          "refreshToken refrash",
+        ),
+      );
+  } catch (error) {
+    throw new ApiError(400, error.message || "Somthing Went Error");
+  }
+});
+
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
+  refreshAccessToken
 };
