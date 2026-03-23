@@ -49,6 +49,8 @@ const userSchema = new mongoose.Schema(
   { Timestamp: true },
 );
 
+
+
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return ;
 
@@ -88,5 +90,7 @@ userSchema.methods.isPasswordCorrect = async function (password) {
 };
 
 const User = mongoose.model("User", userSchema);
+
+
 
 module.exports = User;
